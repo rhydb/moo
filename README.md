@@ -30,6 +30,6 @@ If a title is given but not a description, the description will be blank.
     $ moo 2022
     2022-01-03
         1 another event
-        2022-01-02
-            1 an event
-                     with a description
+    2022-01-02
+        1 an event
+            with a description
