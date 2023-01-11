@@ -98,7 +98,7 @@ main(int argc, char *argv[])
     size_t storelen = strlen(store);
     struct stat st = {0};
     if (stat(store, &st) == -1) {
-        if (mkdir(store, 0) == -1) {
+        if (mkdir(store, 0700) == -1) {
             fprintf(stderr, "failed to create store %s: %s\n", store, strerror(errno));
             exit(1);
         }
