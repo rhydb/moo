@@ -106,8 +106,8 @@ main(int argc, char *argv[])
 
     i = 0;
 
-	if (nextarg(&i, argc, argv) && strcmp(argv[i], "add") && strcmp(argv[i], "delete")) {
-	    if (!(year = atoi(argv[i]))) {
+    if (nextarg(&i, argc, argv) && strcmp(argv[i], "add") && strcmp(argv[i], "delete")) {
+        if (!(year = atoi(argv[i]))) {
             fputs("invalid year\n", stderr);
             exit(1);
         }
@@ -125,12 +125,12 @@ main(int argc, char *argv[])
                 }
             }
         }
-	} else {
+    } else {
         year = tm.tm_year + 1900;
         month = tm.tm_mon + 1;
         day = tm.tm_mday;
         i = 0;
-	}
+    }
 
     char fname[FILE_NAME_LEN];
     snprintf(fname, FILE_NAME_LEN, "%04u%c", year, filedelim);
