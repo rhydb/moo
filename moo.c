@@ -1,3 +1,5 @@
+#include "date.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,15 +49,16 @@ main(int argc, char *argv[])
 {
     char *store = NULL;
 
-	char filedelim = '-';
-	char eventdelim = ':';
-     
-	int i;
+    char filedelim = '-';
+    char eventdelim = ':';
 
-	char title[TITLE_LEN];
-	char desc[DESC_LEN];
-	int year, month, day;
-	year = month = day = -1;
+    int i;
+
+    char week = 0; // match files in the coming week
+    char title[TITLE_LEN];
+    char desc[DESC_LEN];
+    struct date search;
+    search.year = search.month = search.day = -1;
 
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
@@ -106,41 +109,49 @@ main(int argc, char *argv[])
 
     i = 0;
 
-    if (nextarg(&i, argc, argv) && strcmp(argv[i], "add") && strcmp(argv[i], "delete")) {
-        if (!(year = atoi(argv[i]))) {
+    if (nextarg(&i, argc, argv)
+            // when these verbs are the first argument today's date is used
+            && strcmp(argv[i], "add")
+            && strcmp(argv[i], "delete")
+            && strcmp(argv[i], "week")) {
+        if (!(search.year = atoi(argv[i]))) {
             fputs("invalid year\n", stderr);
             exit(1);
         }
 
         if (nextarg(&i, argc, argv)) {
-            if (!(month = atoi(argv[i]))) {
+            if (!(search.month = atoi(argv[i]))) {
                 fputs("invalid month\n", stderr);
                 exit(1);
             }
 
             if (nextarg(&i, argc, argv)) {
-                if (!(day = atoi(argv[i]))) {
+                if (!(search.day = atoi(argv[i]))) {
                     fputs("invalid day\n", stderr);
                     exit(1);
                 }
             }
         }
     } else {
-        year = tm.tm_year + 1900;
-        month = tm.tm_mon + 1;
-        day = tm.tm_mday;
-        i = 0;
+        if (i < argc && !strcmp(argv[i], "week")) {
+            week = 1;
+        } else {
+            i = 0;
+        }
+        search.year = tm.tm_year + 1900;
+        search.month = tm.tm_mon + 1;
+        search.day = tm.tm_mday;
     }
 
     char fname[FILE_NAME_LEN];
-    snprintf(fname, FILE_NAME_LEN, "%04u%c", year, filedelim);
-    int fnamelen = 5; // year(4) + filedelim(1)
+    snprintf(fname, FILE_NAME_LEN, "%04u%c", search.year, filedelim);
+    int fnamelen = 5; // year(4) + filedelim(search.1)
 
-    if (month != -1) {
-       snprintf(fname + fnamelen, FILE_NAME_LEN - fnamelen, "%02u%c", month, filedelim);
+    if (search.month != -1) {
+       snprintf(fname + fnamelen, FILE_NAME_LEN - fnamelen, "%02u%c", search.month, filedelim);
        fnamelen += 3; // month(2) + filedelim(1) 
-       if (day != -1) {
-          snprintf(fname + fnamelen, FILE_NAME_LEN - fnamelen, "%02u", day);
+       if (search.day != -1) {
+          snprintf(fname + fnamelen, FILE_NAME_LEN - fnamelen, "%02u", search.day);
           fnamelen += 2; // day(2)
        }
     }
@@ -199,7 +210,7 @@ main(int argc, char *argv[])
 
             FILE *file = fopen(fpath, "r");
             if (!file) {
-                fprintf(stderr, "failed to open %s: %s\n", fpath, strerror(errno));
+                fprintf(stderr, "failed to open '%s': %s\n", fpath, strerror(errno));
                 exit(1);
             }
 
@@ -224,14 +235,14 @@ main(int argc, char *argv[])
 
             if (n == 0) {
                 if (remove(fpath)) {
-                    fprintf(stderr, "failed to remove %s: %s\n", fpath, strerror(errno));
+                    fprintf(stderr, "failed to remove '%s': %s\n", fpath, strerror(errno));
                     free(temp);
                     return 1;
                 }
             } else {
                 file = fopen(fpath, "w");
                 if (!file) {
-                    fprintf(stderr, "failed to open %s: %s\n", fpath, strerror(errno));
+                    fprintf(stderr, "failed to open '%s': %s\n", fpath, strerror(errno));
                     exit(1);
                 }
                 fputs(temp, file);
@@ -242,7 +253,7 @@ main(int argc, char *argv[])
     } else {
         DIR *storedir = opendir(store);
         if (storedir == NULL) {
-            fprintf(stderr, "failed to open store %s: %s\n", store, strerror(errno));
+            fprintf(stderr, "failed to open store '%s': %s\n", store, strerror(errno));
             exit(1);
         }
 
@@ -254,13 +265,25 @@ main(int argc, char *argv[])
             fprintf(stderr, "failed to malloc entpath\n");
         }
 
+        struct date nextweek = dateadd(search, 7);
+
+        /* extract date from file name using sscanf */
+        char format[256];
+        sprintf(format, "%%04u%c%%02u%c%%02u", filedelim, filedelim);
+        struct date fdate;
+
         char *title = malloc(TITLE_LEN);
         char *desc = malloc(DESC_LEN);
         while ((ent = readdir(storedir))) {
             if (ent->d_type != DT_REG)
                 continue;
 
-            if (strncmp(fname, ent->d_name, fnamelen))
+            if (week) {
+                // extract the year, month date from the file name
+                sscanf(ent->d_name, format, &fdate.year, &fdate.month, &fdate.day);
+                if (!datewithin(search, fdate, nextweek))
+                    continue;
+            } else if (strncmp(fname, ent->d_name, fnamelen))
                 continue;
 
             strcpy(entpath, store);
@@ -272,7 +295,6 @@ main(int argc, char *argv[])
                 fprintf(stderr, "failed to open %s: %s\n", entpath, strerror(errno));
                 continue;
             }
-
 
             size_t titlelen = TITLE_LEN;
             size_t desclen = DESC_LEN;
