@@ -19,12 +19,13 @@ static void
 usage()
 {
     fputs("usage: moo [year] [month] [day] [add|delete] [title] [description] [line]\n"
-          "           [-d delim] [-fd delim] [-p path]\n"
+          "           [-d delim] [-fd delim] [-p path] [-i days] [-o days]\n"
           "\n"
           "  -d    title-description delimiter\n"
           "  -fd   file name delimiter\n"
           "  -p    path to read/write, will contain a moo subfolder\n"
-          "  -i    number of days to include, can be negative\n", stderr);
+          "  -i    number of days to include, can be negative\n"
+          "  -o    offset today's date by a number of days, can be negative\n", stderr);
     exit(1);
 }
 
@@ -45,6 +46,17 @@ nextarg(int *i, int argc, char **argv)
     return 0;
 }
 
+static int
+eatoi(const char *str, const char *error)
+{
+    int res = atoi(str);
+    if (!res) {
+        fputs(error, stderr);
+        exit(1);
+    }
+    return res;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -59,7 +71,7 @@ main(int argc, char *argv[])
     char title[TITLE_LEN];
     char desc[DESC_LEN];
     struct date search;
-    search.year = search.month = search.day = -1;
+    search.year = search.month = search.day = 0;
 
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
@@ -75,12 +87,10 @@ main(int argc, char *argv[])
             filedelim = argv[++i][0];
         else if (!strcmp(argv[i], "-p"))
             store = argv[++i];
-        else if (!strcmp(argv[i], "-i")) {
-            if (!(range = atoi(argv[++i]))) {
-                fputs("invalid range\n", stderr);
-                exit(1);
-            }
-        }
+        else if (!strcmp(argv[i], "-i"))
+            range = eatoi(argv[++i], "invalid range\n");
+        else if (!strcmp(argv[i], "-o"))
+            search.day = eatoi(argv[++i], "invalid offset\n");
     }
 
     if (!store) {
@@ -144,19 +154,23 @@ main(int argc, char *argv[])
         } else {
             i = 0;
         }
-        search.year = tm.tm_year + 1900;
-        search.month = tm.tm_mon + 1;
-        search.day = tm.tm_mday;
+
+        struct date today = {
+            .year = tm.tm_year + 1900,
+            .month = tm.tm_mon + 1,
+            .day = tm.tm_mday,
+        };
+        search = dateadd(today, search.day);
     }
 
     char fname[FILE_NAME_LEN];
     snprintf(fname, FILE_NAME_LEN, "%04u%c", search.year, filedelim);
     int fnamelen = 5; // year(4) + filedelim(search.1)
 
-    if (search.month != -1) {
+    if (search.month) {
        snprintf(fname + fnamelen, FILE_NAME_LEN - fnamelen, "%02u%c", search.month, filedelim);
        fnamelen += 3; // month(2) + filedelim(1) 
-       if (search.day != -1) {
+       if (search.day) {
           snprintf(fname + fnamelen, FILE_NAME_LEN - fnamelen, "%02u", search.day);
           fnamelen += 2; // day(2)
        }

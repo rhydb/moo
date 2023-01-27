@@ -2,16 +2,18 @@
 
 A dead simple planner/diary used to record events that will occur on a specific date.
 
-It does not manage deadlines or times, but there is nothing stoppping you from entering those yourself.
+There is no functionality to handle times.
 
 ## Usage
 
-    usage: moo [year] [month] [day] [add|delete] [title] [description]
-        [-d delim] [-fd delim] [-p path]
+    usage: moo [year] [month] [day] [add|delete] [title] [description] [line]
+               [-d delim] [-fd delim] [-p path] [-i days] [-o days]
 
-        -d    title-description delimiter
-        -fd   file name delimiter
-        -p    path to read/write, will contain a moo subfolder
+      -d    title-description delimiter
+      -fd   file name delimiter
+      -p    path to read/write, will contain a moo subfolder
+      -i    number of days to include, can be negative
+      -o    offset today's date by a number of days, can be negative
 
 If no date is given, the current date is used. A full date (year, month and day) must be given to add or delete events.
 
@@ -25,11 +27,31 @@ If a title is given but not a description, the description will be blank.
 
 ## Example
 
-    $ moo 2022 1 2 add "an event" "with a description"
-    $ moo 2022 1 3 add "another event"
-    $ moo 2022
+Add event for today:
+
+    $ moo add "event title" "event description"
+
+Display the events today
+
+    $ moo
     2022-01-03
-        1 another event
-    2022-01-02
-        1 an event
-            with a description
+        1 event title
+            event description
+
+Delete an event today
+
+    moo delete 1
+
+Add an event for 3 days time
+
+    moo -o 3 add "tomorrow's event"
+
+Show events on a specific date
+
+    moo 2020 5 12
+
+Show events in the next week
+
+    $ moo week
+    # or
+    $ moo -i 7
