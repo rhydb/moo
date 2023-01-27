@@ -23,7 +23,8 @@ usage()
           "\n"
           "  -d    title-description delimiter\n"
           "  -fd   file name delimiter\n"
-          "  -p    path to read/write, will contain a moo subfolder\n", stderr);
+          "  -p    path to read/write, will contain a moo subfolder\n"
+          "  -i    number of days to include, can be negative\n", stderr);
     exit(1);
 }
 
@@ -54,7 +55,7 @@ main(int argc, char *argv[])
 
     int i;
 
-    char week = 0; // match files in the coming week
+    int range = 0; // match files within a certain number of days
     char title[TITLE_LEN];
     char desc[DESC_LEN];
     struct date search;
@@ -72,8 +73,13 @@ main(int argc, char *argv[])
             eventdelim = argv[++i][0];
         else if (!strcmp(argv[i], "-fd"))
             filedelim = argv[++i][0];
-        else if (!strcmp(argv[i], "-p")) {
+        else if (!strcmp(argv[i], "-p"))
             store = argv[++i];
+        else if (!strcmp(argv[i], "-i")) {
+            if (!(range = atoi(argv[++i]))) {
+                fputs("invalid range\n", stderr);
+                exit(1);
+            }
         }
     }
 
@@ -134,7 +140,7 @@ main(int argc, char *argv[])
         }
     } else {
         if (i < argc && !strcmp(argv[i], "week")) {
-            week = 1;
+            range = 7;
         } else {
             i = 0;
         }
@@ -265,7 +271,13 @@ main(int argc, char *argv[])
             fprintf(stderr, "failed to malloc entpath\n");
         }
 
-        struct date nextweek = dateadd(search, 7);
+        struct date nextdate = dateadd(search, range);
+        if (datelt(nextdate, search)) {
+            // if nextdate is before search, swap them
+            struct date temp = nextdate;
+            nextdate = search;
+            search = temp;
+        }
 
         /* extract date from file name using sscanf */
         char format[256];
@@ -278,10 +290,10 @@ main(int argc, char *argv[])
             if (ent->d_type != DT_REG)
                 continue;
 
-            if (week) {
+            if (range) {
                 // extract the year, month date from the file name
                 sscanf(ent->d_name, format, &fdate.year, &fdate.month, &fdate.day);
-                if (!datewithin(search, fdate, nextweek))
+                if (!datewithin(search, fdate, nextdate))
                     continue;
             } else if (strncmp(fname, ent->d_name, fnamelen))
                 continue;

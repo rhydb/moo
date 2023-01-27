@@ -28,6 +28,18 @@ dateadd(struct date x, int days)
     return y;
 }
 
+/* if x < y */
+char
+datelt(struct date x, struct date y)
+{
+    if (x.year == y.year) {
+        if (x.month < y.month)
+            return 1;
+        return x.month == y.month && x.day < y.day;
+    }
+    return x.year < y.year;
+}
+
 char
 datewithin(struct date low, struct date x, struct date high)
 {
