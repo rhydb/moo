@@ -1,6 +1,7 @@
 # moo is a simple planner/dairy
 
-A dead simple planner/diary used to record events that will occur on a specific date.
+A dead simple planner/diary used to record events that will occur on a specific
+date.
 
 There is no functionality to handle times.
 
@@ -15,13 +16,18 @@ There is no functionality to handle times.
       -i     number of days to include, can be negative
       -o     offset today's date by a number of days, can be negative
 
-If no date is given, the current date is used. A full date (year, month and day) must be given to add or delete events. Parts of the date can be set using -d, -m, or -y.
+If no date is given, the current date is used. A full date (year, month and
+day) must be given to add or delete events. Parts of the date can be set using
+-d, -m, or -y.
 
-A 'moo' subdirectory in `$XDG_DATA_HOME` will be used to store events if it is present, otherwise `$HOME/.local/share` will be used. This can be changed with the `-p` flag.
-Each date has its own file, named `YYYY-MM-DD` where `-` is the file name delimiter
-One event is stored per line in the format `:title:description`, where `:` is the title-description delimiter.
+A 'moo' subdirectory in `$XDG_DATA_HOME` will be used to store events if it is
+present, otherwise `$HOME/.local/share` will be used. This can be changed with
+the `-p` flag. Each date has its own file, named `YYYY-MM-DD` where `-` is the
+file name delimiter One event is stored per line in the format
+`:title:description`, where `:` is the title-description delimiter.
 
-If a partial date is given, all files starting with the information given will be listed.
+If a partial date is given, all files starting with the information given will
+be listed.
 
 If a title is given but not a description, the description will be blank.
 
@@ -46,10 +52,7 @@ Add event for today:
 
 Display the events today
 
-    $ moo
-    2022-01-03
-        1 event title
-            event description
+    $ moo 2022-01-03 1 event title event description
 
 Delete an event today
 
@@ -65,6 +68,4 @@ Show events on a specific date
 
 Show events in the next week
 
-    $ moo week
-    # or
-    $ moo -i 7
+    $ moo week # or $ moo -i 7
