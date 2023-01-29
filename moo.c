@@ -19,13 +19,13 @@ static void
 usage()
 {
     fputs("usage: moo [year] [month] [day] [add|delete] [title] [description] [line]\n"
-          "           [-d delim] [-fd delim] [-p path] [-i days] [-o days]\n"
+          "           [-dmy day/month/year] [-td delim] [-fd delim] [-p path] [-i days] [-o days]\n"
           "\n"
-          "  -d    title-description delimiter\n"
-          "  -fd   file name delimiter\n"
-          "  -p    path to read/write, will contain a moo subfolder\n"
-          "  -i    number of days to include, can be negative\n"
-          "  -o    offset today's date by a number of days, can be negative\n", stderr);
+          "  -td    title-description delimiter\n"
+          "  -fd    file name delimiter\n"
+          "  -p     path to read/write, will contain a moo subfolder\n"
+          "  -i     number of days to include, can be negative\n"
+          "  -o     offset today's date by a number of days, can be negative\n", stderr);
     exit(1);
 }
 
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
             continue;
         if (i + 1 == argc)
             usage();
-        else if (!strcmp(argv[i], "-d"))
+        else if (!strcmp(argv[i], "-td"))
             eventdelim = argv[++i][0];
         else if (!strcmp(argv[i], "-fd"))
             filedelim = argv[++i][0];
