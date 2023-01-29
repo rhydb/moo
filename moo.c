@@ -191,7 +191,7 @@ main(int argc, char *argv[])
         exit(1);
     }
 
-    strcat(fpath, storepath);
+    strcpy(fpath, storepath);
     strcat(fpath, "/");
     strcat(fpath, fname);
 
