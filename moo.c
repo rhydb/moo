@@ -60,21 +60,16 @@ eatoi(const char *str, const char *error)
 int
 main(int argc, char *argv[])
 {
-    char *store = NULL;
+    char *storepath = NULL;
 
     char filedelim = '-';
     char eventdelim = ':';
 
-    int i;
-
     int range = 0; // match files within a certain number of days
-    char title[TITLE_LEN];
-    char desc[DESC_LEN];
     struct date search;
     search.year = search.month = search.day = 0;
 
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
+    int i;
 
     for (i = 1; i < argc; i++) {
         if (argv[i][0] != '-')
@@ -86,16 +81,18 @@ main(int argc, char *argv[])
         else if (!strcmp(argv[i], "-fd"))
             filedelim = argv[++i][0];
         else if (!strcmp(argv[i], "-p"))
-            store = argv[++i];
+            storepath = argv[++i];
         else if (!strcmp(argv[i], "-i"))
             range = eatoi(argv[++i], "invalid range\n");
         else if (!strcmp(argv[i], "-o"))
             search.day = eatoi(argv[++i], "invalid offset\n");
     }
 
-    if (!store) {
+    // get the store directory following XDG if one wasn't provided
+    if (!storepath) {
         char *data;
         if (!(data = getenv("XDG_DATA_HOME")) || data[0] == '\0') {
+            // use $HOME/.local/share/moo instead
             const char *home;
             if (!(home = getenv("HOME"))) {
                 struct passwd *pw = getpwuid(getuid());
@@ -103,22 +100,22 @@ main(int argc, char *argv[])
             }
             const size_t homelen = strlen(home);
             const char* const dir = "/.local/share/moo";
-            store = malloc(homelen + strlen(dir));
-            strcpy(store, home);
-            strcpy(store + homelen, dir);
+            storepath = malloc(homelen + strlen(dir));
+            strcpy(storepath, home);
+            strcpy(storepath + homelen, dir);
         } else {
             const size_t datalen = strlen(data);
-            store = malloc(datalen + strlen("/moo"));
-            strcpy(store, data);
-            strcat(store, "/moo");
+            storepath = malloc(datalen + strlen("/moo"));
+            strcpy(storepath, data);
+            strcat(storepath, "/moo");
         }
     }
 
-    size_t storelen = strlen(store);
+    size_t storepathlen = strlen(storepath);
     struct stat st = {0};
-    if (stat(store, &st) == -1) {
-        if (mkdir(store, 0700) == -1) {
-            fprintf(stderr, "failed to create store %s: %s\n", store, strerror(errno));
+    if (stat(storepath, &st) == -1) {
+        if (mkdir(storepath, 0700) == -1) {
+            fprintf(stderr, "failed to create store %s: %s\n", storepath, strerror(errno));
             exit(1);
         }
     }
@@ -155,6 +152,8 @@ main(int argc, char *argv[])
             i = 0;
         }
 
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
         struct date today = {
             .year = tm.tm_year + 1900,
             .month = tm.tm_mon + 1,
@@ -176,17 +175,20 @@ main(int argc, char *argv[])
        }
     }
 
-    char *fpath = malloc(storelen + 1 + FILE_NAME_LEN);
+    char *fpath = malloc(storepathlen + 1 + FILE_NAME_LEN);
     if (!fpath) {
         fprintf(stderr, "failed to malloc fpath\n");
         exit(1);
     }
 
-    strcat(fpath, store);
+    strcat(fpath, storepath);
     strcat(fpath, "/");
     strcat(fpath, fname);
 
     if (nextarg(&i, argc, argv)) {
+        char title[TITLE_LEN];
+        char desc[DESC_LEN];
+
         if (!strcmp(argv[i], "add")) {
             if (nextarg(&i, argc, argv)) {
                 strncpy(title, argv[i], TITLE_LEN);
@@ -271,17 +273,17 @@ main(int argc, char *argv[])
             free(temp);
         }
     } else {
-        DIR *storedir = opendir(store);
+        DIR *storedir = opendir(storepath);
         if (storedir == NULL) {
-            fprintf(stderr, "failed to open store '%s': %s\n", store, strerror(errno));
+            fprintf(stderr, "failed to open store '%s': %s\n", storepath, strerror(errno));
             exit(1);
         }
 
         errno = 0;
         struct dirent *ent;
 
-        char *entpath = malloc(storelen + 1 + 256);
-        if (!entpath) {
+        char *entrypath = malloc(storepathlen + 1 + 256);
+        if (!entrypath) {
             fprintf(stderr, "failed to malloc entpath\n");
         }
 
@@ -312,13 +314,13 @@ main(int argc, char *argv[])
             } else if (strncmp(fname, ent->d_name, fnamelen))
                 continue;
 
-            strcpy(entpath, store);
-            strcpy(entpath + storelen, "/");
-            strcpy(entpath + storelen + 1, ent->d_name);
+            strcpy(entrypath, storepath);
+            strcpy(entrypath + storepathlen, "/");
+            strcpy(entrypath + storepathlen + 1, ent->d_name);
 
-            FILE *file = fopen(entpath, "r");
+            FILE *file = fopen(entrypath, "r");
             if (!file) {
-                fprintf(stderr, "failed to open %s: %s\n", entpath, strerror(errno));
+                fprintf(stderr, "failed to open %s: %s\n", entrypath, strerror(errno));
                 continue;
             }
 
@@ -370,15 +372,15 @@ main(int argc, char *argv[])
 
         free(desc);
         free(title);
-        free(entpath);
+        free(entrypath);
 
         if (errno) {
-            fprintf(stderr, "failed to read store %s: %s\n", store, strerror(errno));
+            fprintf(stderr, "failed to read store %s: %s\n", storepath, strerror(errno));
             exit(1);
         }
 
         closedir(storedir);
     }
     free(fpath);
-    free(store);
+    free(storepath);
 }
