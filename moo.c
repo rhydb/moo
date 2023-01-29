@@ -66,6 +66,7 @@ main(int argc, char *argv[])
     char eventdelim = ':';
 
     int range = 0; // match files within a certain number of days
+    int offset = 0;
     struct date search;
     search.year = search.month = search.day = 0;
 
@@ -76,6 +77,12 @@ main(int argc, char *argv[])
             continue;
         if (i + 1 == argc)
             usage();
+        else if (!strcmp(argv[i], "-y"))
+            search.year = eatoi(argv[++i], "invalid year\n");
+        else if (!strcmp(argv[i], "-m"))
+            search.month = eatoi(argv[++i], "invalid month\n");
+        else if (!strcmp(argv[i], "-d"))
+            search.day = eatoi(argv[++i], "invalid day\n");
         else if (!strcmp(argv[i], "-td"))
             eventdelim = argv[++i][0];
         else if (!strcmp(argv[i], "-fd"))
@@ -85,7 +92,7 @@ main(int argc, char *argv[])
         else if (!strcmp(argv[i], "-i"))
             range = eatoi(argv[++i], "invalid range\n");
         else if (!strcmp(argv[i], "-o"))
-            search.day = eatoi(argv[++i], "invalid offset\n");
+            offset = eatoi(argv[++i], "invalid offset\n");
     }
 
     // get the store directory following XDG if one wasn't provided
@@ -154,12 +161,15 @@ main(int argc, char *argv[])
 
         time_t t = time(NULL);
         struct tm tm = *localtime(&t);
-        struct date today = {
-            .year = tm.tm_year + 1900,
-            .month = tm.tm_mon + 1,
-            .day = tm.tm_mday,
+
+#define COALESCE(x, y) (x ? x : y) // return x if truthy else y
+
+        struct date date = {
+            .year = COALESCE(search.year, tm.tm_year + 1900),
+            .month = COALESCE(search.month, tm.tm_mon + 1),
+            .day = COALESCE(search.day, tm.tm_mday),
         };
-        search = dateadd(today, search.day);
+        search = dateadd(date, offset);
     }
 
     char fname[FILE_NAME_LEN];
