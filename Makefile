@@ -1,7 +1,11 @@
-all: moo.c
+BIN=moo
+
+all: $(BIN)
+
+release: $(BIN)
 	$(CC) moo.c -o moo -Os
 
-install: all
+install: $(BIN)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp -f moo $(DESTDIR)$(PREFIX)/bin/moo
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/moo
