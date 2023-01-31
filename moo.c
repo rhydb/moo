@@ -235,10 +235,18 @@ main(int argc, char *argv[])
             fclose(file);
         } else if (!strcmp(argv[i++], "delete")) {
             int line;
-            if (i == argc || !(line = atoi(argv[i++]))) {
+            if (i == argc) {
+                fputs("delete requires a number or 'all'\n", stderr);
+                exit(1);
+            }
+
+            if (!strcmp(argv[i], "all")) {
+                line = -1;
+            } else if (!(line = atoi(argv[i]))) {
                 fputs("invalid line\n", stderr);
                 exit(1);
             }
+            i += 1;
 
             FILE *file = fopen(fpath, "r");
             if (!file) {
@@ -256,7 +264,7 @@ main(int argc, char *argv[])
             char c;
             int nlcount = 1;
             while ((c = fgetc(file)) != EOF) {
-                if (nlcount != line)
+                if (line != -1 && line != nlcount)
                     temp[n++] = c;
                 if (c == '\n')
                     nlcount += 1;
