@@ -118,12 +118,14 @@ main(int argc, char *argv[])
         }
     }
 
-    size_t storepathlen = strlen(storepath);
-    struct stat st = {0};
-    if (stat(storepath, &st) == -1) {
-        if (mkdir(storepath, 0700) == -1) {
-            fprintf(stderr, "failed to create store %s: %s\n", storepath, strerror(errno));
-            exit(1);
+    // create the store directory if it doesn't exist
+    {
+        struct stat st = {0};
+        if (stat(storepath, &st) == -1) {
+            if (mkdir(storepath, 0700) == -1) {
+                fprintf(stderr, "failed to create store %s: %s\n", storepath, strerror(errno));
+                exit(1);
+            }
         }
     }
 
@@ -134,36 +136,22 @@ main(int argc, char *argv[])
             && strcmp(argv[i], "add")
             && strcmp(argv[i], "delete")
             && strcmp(argv[i], "week")) {
-        if (!(search.year = atoi(argv[i]))) {
-            fputs("invalid year\n", stderr);
-            exit(1);
-        }
 
+        search.year = eatoi(argv[i], "invalid year\n");
         if (nextarg(&i, argc, argv)) {
-            if (!(search.month = atoi(argv[i]))) {
-                fputs("invalid month\n", stderr);
-                exit(1);
-            }
-
-            if (nextarg(&i, argc, argv)) {
-                if (!(search.day = atoi(argv[i]))) {
-                    fputs("invalid day\n", stderr);
-                    exit(1);
-                }
-            }
+            search.month = eatoi(argv[i], "invalid month\n");
+            if (nextarg(&i, argc, argv))
+                search.day = eatoi(argv[i], "invalid day\n");
         }
     } else {
-        if (i < argc && !strcmp(argv[i], "week")) {
+        if (i < argc && !strcmp(argv[i], "week"))
             range = 7;
-        } else {
+        else
             i = 0;
-        }
-
-        time_t t = time(NULL);
-        struct tm tm = *localtime(&t);
 
 #define COALESCE(x, y) (x ? x : y) // return x if truthy else y
-
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
         struct date date = {
             .year = COALESCE(search.year, tm.tm_year + 1900),
             .month = COALESCE(search.month, tm.tm_mon + 1),
@@ -172,6 +160,7 @@ main(int argc, char *argv[])
         search = dateadd(date, offset);
     }
 
+    // build the file name string
     char fname[FILE_NAME_LEN];
     snprintf(fname, FILE_NAME_LEN, "%04u%c", search.year, filedelim);
     int fnamelen = 5; // year(4) + filedelim(search.1)
@@ -185,6 +174,7 @@ main(int argc, char *argv[])
        }
     }
 
+    size_t storepathlen = strlen(storepath);
     char *fpath = malloc(storepathlen + 1 + FILE_NAME_LEN);
     if (!fpath) {
         fprintf(stderr, "failed to malloc fpath\n");
@@ -200,6 +190,7 @@ main(int argc, char *argv[])
         char desc[DESC_LEN];
 
         if (!strcmp(argv[i], "add")) {
+            // get the title and description from the next arguments
             if (nextarg(&i, argc, argv)) {
                 strncpy(title, argv[i], TITLE_LEN);
                 if (nextarg(&i, argc, argv)) {
@@ -207,6 +198,7 @@ main(int argc, char *argv[])
                 }
             }
 
+            // if there weren't any arguments prompt the user
             if (!title[0]) {
                 printf("title: ");
                 fflush(stdin);
@@ -218,7 +210,7 @@ main(int argc, char *argv[])
                     printf("description: ");
                     fflush(stdin);
                     fgets(desc, DESC_LEN, stdin);
-                    int len = strlen(desc);
+                    len = strlen(desc);
                     if (desc[len - 1] == '\n')
                         desc[len - 1] = '\0';
                 }
