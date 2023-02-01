@@ -221,9 +221,7 @@ main(int argc, char *argv[])
                 fprintf(stderr, "failed to open %s: %s\n", fpath, strerror(errno));
                 exit(1);
             }
-
             fprintf(file, "%c%s%c%s\n", eventdelim, title, eventdelim, desc);
-
             fclose(file);
         } else if (!strcmp(argv[i++], "delete")) {
             int line;
