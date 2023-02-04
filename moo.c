@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <pwd.h>
+#include <unistd.h>
 
 #define TITLE_LEN 50
 #define DESC_LEN 100
@@ -71,6 +72,7 @@ efopen(const char *path, const char *mode)
 int
 main(int argc, char *argv[])
 {
+    char interactive = isatty(STDOUT_FILENO); // will change how things are printed
     char *storepath = NULL;
 
     char filedelim = '-';
@@ -331,19 +333,22 @@ main(int argc, char *argv[])
                 continue;
             }
 
-            size_t titlelen = TITLE_LEN;
-            size_t desclen = DESC_LEN;
-
-            ssize_t titleread;
-            ssize_t descread;
-
-            size_t line = 1;
 
             fseek(file, 0L, SEEK_END);
             size_t size = ftell(file);
             if (size > 0) {
-                printf("%s\n", ent->d_name);
                 rewind(file);
+
+                size_t titlelen = TITLE_LEN;
+                size_t desclen = DESC_LEN;
+
+                ssize_t titleread;
+                ssize_t descread;
+
+                size_t line = 1;
+
+                if (interactive)
+                    printf("%s\n", ent->d_name);
 
                 while (1) {
                     errno = 0;
@@ -366,9 +371,17 @@ main(int argc, char *argv[])
                     if (descread > 1)
                         desc[descread - 1] = '\0';
 
-                    printf("    %ld %s\n", line, title);
-                    if (descread > 1)
-                        printf("         %s\n", desc);
+                    if (interactive) {
+                        printf("    %ld %s\n", line, title);
+                        if (descread > 1)
+                            printf("         %s\n", desc);
+                    } else {
+                        printf("%s %ld %s", ent->d_name, line, title);
+                        if (descread > 1)
+                            printf(": %s\n", desc);
+                        else
+                            printf("\n");
+                    }
 
                     line += 1;
                 }
