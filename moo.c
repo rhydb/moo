@@ -57,6 +57,17 @@ eatoi(const char *str, const char *error)
     return res;
 }
 
+static FILE*
+efopen(const char *path, const char *mode)
+{
+    FILE *fp = fopen(path, mode);
+    if (!fp) {
+        fprintf(stderr, "failed to open '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+    return fp;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -216,11 +227,7 @@ main(int argc, char *argv[])
                 }
             }
 
-            FILE *file = fopen(fpath, "a");
-            if (!file) {
-                fprintf(stderr, "failed to open %s: %s\n", fpath, strerror(errno));
-                exit(1);
-            }
+            FILE *file = efopen(fpath, "a");
             fprintf(file, "%c%s%c%s\n", eventdelim, title, eventdelim, desc);
             fclose(file);
         } else if (!strcmp(argv[i++], "delete")) {
@@ -238,11 +245,7 @@ main(int argc, char *argv[])
             }
             i += 1;
 
-            FILE *file = fopen(fpath, "r");
-            if (!file) {
-                fprintf(stderr, "failed to open '%s': %s\n", fpath, strerror(errno));
-                exit(1);
-            }
+            FILE *file = efopen(fpath, "r");
 
             fseek(file, 0L, SEEK_END);
             size_t size = ftell(file);
@@ -270,11 +273,7 @@ main(int argc, char *argv[])
                     return 1;
                 }
             } else {
-                file = fopen(fpath, "w");
-                if (!file) {
-                    fprintf(stderr, "failed to open '%s': %s\n", fpath, strerror(errno));
-                    exit(1);
-                }
+                file = efopen(fpath, "w");
                 fputs(temp, file);
                 fclose(file);
             }
