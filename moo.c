@@ -426,6 +426,12 @@ main(int argc, char *argv[])
             fclose(file);
         }
 
+        for (int i = 0; i < fcount; i++) {
+            free(files[i]);
+        }
+
+        free(files);
+
         free(desc);
         free(title);
         free(entrypath);
