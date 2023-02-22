@@ -1,8 +1,6 @@
 BIN=moo
 
-all: $(BIN)
-
-release: $(BIN)
+$(BIN):
 	$(CC) moo.c -o moo -Os
 
 install: $(BIN)
