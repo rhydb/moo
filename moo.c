@@ -144,6 +144,7 @@ main(int argc, char *argv[])
 
     i = 0;
 
+    // get the date from the arguments
     if (nextarg(&i, argc, argv)
             // when these verbs are the first argument today's date is used
             && strcmp(argv[i], "add")
@@ -199,6 +200,7 @@ main(int argc, char *argv[])
     strcat(fpath, fname);
 
     if (nextarg(&i, argc, argv)) {
+        // handle a verb (add, delete)
         char title[TITLE_LEN];
         char desc[DESC_LEN];
 
@@ -282,6 +284,7 @@ main(int argc, char *argv[])
             free(temp);
         }
     } else {
+        // output the contents of files
         DIR *storedir = opendir(storepath);
         if (storedir == NULL) {
             fprintf(stderr, "failed to open store '%s': %s\n", storepath, strerror(errno));
