@@ -319,11 +319,6 @@ main(int argc, char *argv[])
         }
     } else {
         // output the contents of files
-        DIR *storedir = opendir(storepath);
-        if (storedir == NULL) {
-            fprintf(stderr, "failed to open store '%s': %s\n", storepath, strerror(errno));
-            exit(1);
-        }
 
         errno = 0;
         struct dirent *ent;
@@ -440,8 +435,6 @@ main(int argc, char *argv[])
             fprintf(stderr, "failed to read store %s: %s\n", storepath, strerror(errno));
             exit(1);
         }
-
-        closedir(storedir);
     }
     free(fpath);
     free(storepath);
