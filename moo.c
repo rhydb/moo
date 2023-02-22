@@ -15,6 +15,25 @@
 #define TITLE_LEN 50
 #define DESC_LEN 100
 #define FILE_NAME_LEN 12 // year(4) + filedelim(1) + month(2) + delim(1) + day(2) + \0
+                         //
+
+static char interactive;
+static char *storepath = NULL;
+
+static char filedelim = '-';
+static char eventdelim = ':';
+static char fnamefmt[256]; // printf style format of file names, using filedelim
+static char fname[FILE_NAME_LEN]; // file name to match with, built using the search date
+static int fnamelen = 0;
+
+static int range = 0; // match files within a certain number of days
+static int offset = 0; // offset search from today's date
+static struct date search = {
+    .year = 0,
+    .month = 0,
+    .day = 0,
+};
+static struct date nextdate; // upper search bound
 
 static void
 usage()
@@ -26,7 +45,8 @@ usage()
           "  -fd    file name delimiter\n"
           "  -p     path to read/write, will contain a moo subfolder\n"
           "  -i     number of days to include, can be negative\n"
-          "  -o     offset today's date by a number of days, can be negative\n", stderr);
+          "  -o     offset today's date by a number of days, can be negative\n"
+          "--nosort do not sort the files\n", stderr);
     exit(1);
 }
 
@@ -37,8 +57,10 @@ nextarg(int *i, int argc, char **argv)
 {
     while (*i + 1 < argc) {
         *i += 1;
-        if (argv[*i][0] != '-')
+        if (argv[*i][0] != '-' )
             return 1;
+        if (argv[*i][0] == '-' && argv[*i][1] == '-')
+            continue;
 
         if (*i + 1 == argc)
                 usage();
@@ -69,26 +91,39 @@ efopen(const char *path, const char *mode)
     return fp;
 }
 
+static int
+rangefilter(const struct dirent *ent)
+{
+    // returns 1 if the entry is within search and nextdate
+    // uses sscanf to extract the date from the file name with fnamefmt
+    if (ent->d_type != DT_REG) {
+        return 0;
+    }
+    struct date fdate;
+    sscanf(ent->d_name, fnamefmt, &fdate.year, &fdate.month, &fdate.day);
+    return datewithin(search, fdate, nextdate);
+}
+
+static int
+matchfilter(const struct dirent *ent)
+{
+    // returns 1 if the entry matches fname
+    return ent->d_type == DT_REG && !strncmp(fname, ent->d_name, fnamelen);
+}
+
 int
 main(int argc, char *argv[])
 {
-    char interactive = isatty(STDOUT_FILENO); // will change how things are printed
-    char *storepath = NULL;
-
-    char filedelim = '-';
-    char eventdelim = ':';
-
-    int range = 0; // match files within a certain number of days
-    int offset = 0;
-    struct date search;
-    search.year = search.month = search.day = 0;
-
+    interactive = isatty(STDOUT_FILENO); // will change how things are printed
     int i;
+    char sortfiles = 1;
 
     for (i = 1; i < argc; i++) {
         if (argv[i][0] != '-')
             continue;
-        if (i + 1 == argc)
+        if (!strcmp(argv[i], "--nosort"))
+            sortfiles = 0;
+        else if (i + 1 == argc)
             usage();
         else if (!strcmp(argv[i], "-y"))
             search.year = eatoi(argv[++i], "invalid year\n");
@@ -175,9 +210,8 @@ main(int argc, char *argv[])
     }
 
     // build the file name string
-    char fname[FILE_NAME_LEN];
     snprintf(fname, FILE_NAME_LEN, "%04u%c", search.year, filedelim);
-    int fnamelen = 5; // year(4) + filedelim(search.1)
+    fnamelen = 5; // year(4) + filedelim(search.1)
 
     if (search.month) {
        snprintf(fname + fnamelen, FILE_NAME_LEN - fnamelen, "%02u%c", search.month, filedelim);
@@ -299,7 +333,7 @@ main(int argc, char *argv[])
             fprintf(stderr, "failed to malloc entpath\n");
         }
 
-        struct date nextdate = dateadd(search, range);
+        nextdate = dateadd(search, range);
         if (datelt(nextdate, search)) {
             // if nextdate is before search, swap them
             struct date temp = nextdate;
@@ -308,23 +342,22 @@ main(int argc, char *argv[])
         }
 
         /* extract date from file name using sscanf */
-        char format[256];
-        sprintf(format, "%%04u%c%%02u%c%%02u", filedelim, filedelim);
+        sprintf(fnamefmt, "%%04u%c%%02u%c%%02u", filedelim, filedelim);
         struct date fdate;
 
         char *title = malloc(TITLE_LEN);
         char *desc = malloc(DESC_LEN);
-        while ((ent = readdir(storedir))) {
-            if (ent->d_type != DT_REG)
-                continue;
 
-            if (range) {
-                // extract the year, month date from the file name
-                sscanf(ent->d_name, format, &fdate.year, &fdate.month, &fdate.day);
-                if (!datewithin(search, fdate, nextdate))
-                    continue;
-            } else if (strncmp(fname, ent->d_name, fnamelen))
-                continue;
+        struct dirent **files;
+        int (*filter)(const struct dirent *) = range ? rangefilter : matchfilter; // filter function to find matching files
+        int fcount = scandir(storepath, &files, filter, sortfiles ? alphasort : NULL);
+        if (fcount == -1) {
+            fprintf(stderr, "failed to scandir %s: %s\n", storepath, strerror(errno));
+            exit(1);
+        }
+
+        for (int i = 0; i < fcount; i++) {
+            struct dirent *ent = files[i];
 
             strcpy(entrypath, storepath);
             strcpy(entrypath + storepathlen, "/");
