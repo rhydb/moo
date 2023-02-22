@@ -1,9 +1,13 @@
 # moo is a simple planner/dairy
 
-A dead simple planner/diary used to record events that will occur on a specific
+A dead simple command line planner/diary used to record events that will occur on a specific
 date.
 
 There is no functionality to handle times.
+
+The code currently relies on GNU extensions, such as `scandir` and
+`getdelim`. I do not have a need to find alternatives to these, however I
+am happy to accept pull requests that do.
 
 ## Usage
 
