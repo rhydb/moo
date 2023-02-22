@@ -15,6 +15,7 @@ There is no functionality to handle times.
       -p     path to read/write, will contain a moo subfolder
       -i     number of days to include, can be negative
       -o     offset today's date by a number of days, can be negative
+    --nosort do not sort the files
 
 If no date is given, the current date is used. A full date (year, month and
 day) must be given to add or delete events. Parts of the date can be set using
