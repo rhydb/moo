@@ -16,18 +16,10 @@
 #define DESC_LEN 100
 #define FILE_NAME_LEN 12 // year(4) + filedelim(1) + month(2) + delim(1) + day(2) + \0
                          //
-
-static char interactive;
-static char *storepath = NULL;
-
-static char filedelim = '-';
-static char eventdelim = ':';
 static char fnamefmt[256]; // printf style format of file names, using filedelim
 static char fname[FILE_NAME_LEN]; // file name to match with, built using the search date
 static int fnamelen = 0;
 
-static int range = 0; // match files within a certain number of days
-static int offset = 0; // offset search from today's date
 static struct date search = {
     .year = 0,
     .month = 0,
@@ -114,10 +106,16 @@ matchfilter(const struct dirent *ent)
 int
 main(int argc, char *argv[])
 {
-    interactive = isatty(STDOUT_FILENO); // will change how things are printed
-    int i;
+    const char interactive = isatty(STDOUT_FILENO); // will change how things are printed
     char sortfiles = 1;
+    char filedelim = '-';
+    char eventdelim = ':';
+    char *storepath = NULL;
 
+    int range = 0; // match files within a certain number of days
+    int offset = 0; // offset search from today's date
+
+    int i;
     for (i = 1; i < argc; i++) {
         if (argv[i][0] != '-')
             continue;
