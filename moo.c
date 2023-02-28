@@ -108,8 +108,8 @@ main(int argc, char *argv[])
 {
     const char interactive = isatty(STDOUT_FILENO); // will change how things are printed
     char sortfiles = 1;
-    char filedelim = '-';
-    char eventdelim = ':';
+    char filedelim = '-'; // delimeter for year, month, day in file names
+    char eventdelim = ':'; // delimiter for title and description in each event
     char *storepath = NULL;
 
     int range = 0; // match files within a certain number of days
