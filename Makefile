@@ -1,6 +1,6 @@
 BIN=moo
 
-$(BIN):
+$(BIN): moo.c date.h
 	$(CC) moo.c -o moo -Os
 
 install: $(BIN)
